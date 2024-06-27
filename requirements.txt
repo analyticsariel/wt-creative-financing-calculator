@@ -1,0 +1,8 @@
+plotly-express
+plotly
+pandas
+numpy
+boto3
+fsspec
+s3fs
+firebase-admin
