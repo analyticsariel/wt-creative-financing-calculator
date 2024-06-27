@@ -81,7 +81,7 @@ st.markdown('Want to see the properties 🏡 behind the numbers? Check out 👉 
 ####################################################
 #                      TABS                         #
 ####################################################
-tab1, tab2 = st.tabs(["Calculator", "Python Code"])
+tab1, tab2 = st.tabs(["Calculator", "Code"])
 #|------------------METRICS-------------------|#
 with tab1:
     col1, col2, col3 = st.columns([1,1,2])
@@ -146,60 +146,156 @@ with tab1:
 
 
 with tab2:
-    st.code(
-        '''def seller_financing_calculator(sale_price, down_payment_rate, annual_interest_rate, loan_term_years, balloon_due_years=None, interest_only_years=None):
-    # Calculate the initial loan amount
-    down_payment = int(sale_price * (down_payment_rate/100))
-    loan_amount = sale_price - down_payment
-    
-    # Monthly interest rate
-    monthly_interest_rate = annual_interest_rate / 100 / 12
-    # Total number of payments
-    total_payments = loan_term_years * 12
-    
-    # Calculate the monthly payment for a fully amortizing loan
-    if monthly_interest_rate > 0:
-        monthly_payment = loan_amount * monthly_interest_rate / (1 - (1 + monthly_interest_rate) ** -total_payments)
-    else:
-        monthly_payment = loan_amount / total_payments
-    
-    # Create amortization table
-    amortization_table = []
-    balance = loan_amount
-    for month in range(1, total_payments + 1):
-        interest_payment = balance * monthly_interest_rate
-        if interest_only_years and month <= interest_only_years * 12:
-            principal_payment = 0
-            monthly_payment_during_interest_only = loan_amount * monthly_interest_rate
-            amortization_table.append([month, monthly_payment_during_interest_only, interest_payment, principal_payment, balance])
-        else:
-            principal_payment = monthly_payment - interest_payment
-            balance -= principal_payment
-            amortization_table.append([month, monthly_payment, interest_payment, principal_payment, max(balance, 0)])
+    with st.expander("Python", expanded=False):
+        st.code(
+            '''def seller_financing_calculator(sale_price, down_payment_rate, annual_interest_rate, loan_term_years, balloon_due_years=None, interest_only_years=None):
+        # Calculate the initial loan amount
+        down_payment = int(sale_price * (down_payment_rate/100))
+        loan_amount = sale_price - down_payment
         
-        if balloon_due_years and month == balloon_due_years * 12:
-            balloon_payment = balance
-            amortization_table.append([month, monthly_payment, interest_payment, principal_payment, 0])
-            break
+        # Monthly interest rate
+        monthly_interest_rate = annual_interest_rate / 100 / 12
+        # Total number of payments
+        total_payments = loan_term_years * 12
+        
+        # Calculate the monthly payment for a fully amortizing loan
+        if monthly_interest_rate > 0:
+            monthly_payment = loan_amount * monthly_interest_rate / (1 - (1 + monthly_interest_rate) ** -total_payments)
+        else:
+            monthly_payment = loan_amount / total_payments
+        
+        # Create amortization table
+        amortization_table = []
+        balance = loan_amount
+        for month in range(1, total_payments + 1):
+            interest_payment = balance * monthly_interest_rate
+            if interest_only_years and month <= interest_only_years * 12:
+                principal_payment = 0
+                monthly_payment_during_interest_only = loan_amount * monthly_interest_rate
+                amortization_table.append([month, monthly_payment_during_interest_only, interest_payment, principal_payment, balance])
+            else:
+                principal_payment = monthly_payment - interest_payment
+                balance -= principal_payment
+                amortization_table.append([month, monthly_payment, interest_payment, principal_payment, max(balance, 0)])
+            
+            if balloon_due_years and month == balloon_due_years * 12:
+                balloon_payment = balance
+                amortization_table.append([month, monthly_payment, interest_payment, principal_payment, 0])
+                break
 
-    # Convert amortization table to DataFrame for better display
-    df_amortization_table = pd.DataFrame(amortization_table, columns=["Month", "Monthly Payment", "Interest", "Principal", "Remaining Balance"])
+        # Convert amortization table to DataFrame for better display
+        df_amortization_table = pd.DataFrame(amortization_table, columns=["Month", "Monthly Payment", "Interest", "Principal", "Remaining Balance"])
+        
+        # Total interest paid
+        total_interest_paid = df_amortization_table["Interest"].sum()
+        
+        # Total payments
+        total_payments_made = df_amortization_table["Monthly Payment"].sum() + (balloon_payment if balloon_due_years else 0)
+        
+        return {
+            "Down Payment": down_payment,
+            "Balloon Amount": df_amortization_table.iloc[-2]['Remaining Balance'],
+            "Monthly Payment Interest Only": round(df_amortization_table.iloc[0]['Monthly Payment'], 2),
+            "Monthly Payment Non Interest Only": round(df_amortization_table.iloc[-1]['Monthly Payment'], 2),
+            "Monthly Payment": round(monthly_payment, 2),
+            "Total Interest Paid": round(total_interest_paid, 2),
+            "Total Payment Amount": round(total_payments_made, 2),
+            "Amortization Table": df_amortization_table.iloc[:-1]
+        }
+    ''', 
+            language='python')
+
+
+    with st.expander("Javascript", expanded=False):
+        code = '''function sellerFinancingCalculator(salePrice, downPaymentRate, annualInterestRate, loanTermYears, balloonDueYears = null, interestOnlyYears = null) {
+    // Calculate the initial loan amount
+    let downPayment = Math.round(salePrice * (downPaymentRate / 100));
+    let loanAmount = salePrice - downPayment;
     
-    # Total interest paid
-    total_interest_paid = df_amortization_table["Interest"].sum()
+    // Monthly interest rate
+    let monthlyInterestRate = annualInterestRate / 100 / 12;
+    // Total number of payments
+    let totalPayments = loanTermYears * 12;
     
-    # Total payments
-    total_payments_made = df_amortization_table["Monthly Payment"].sum() + (balloon_payment if balloon_due_years else 0)
+    // Calculate the monthly payment for a fully amortizing loan
+    let monthlyPayment;
+    if (monthlyInterestRate > 0) {
+        monthlyPayment = loanAmount * monthlyInterestRate / (1 - Math.pow(1 + monthlyInterestRate, -totalPayments));
+    } else {
+        monthlyPayment = loanAmount / totalPayments;
+    }
+    
+    // Create amortization table
+    let amortizationTable = [];
+    let balance = loanAmount;
+    for (let month = 1; month <= totalPayments; month++) {
+        let interestPayment = balance * monthlyInterestRate;
+        let principalPayment;
+        if (interestOnlyYears && month <= interestOnlyYears * 12) {
+            principalPayment = 0;
+            let monthlyPaymentDuringInterestOnly = loanAmount * monthlyInterestRate;
+            amortizationTable.push({
+                Month: month,
+                "Monthly Payment": monthlyPaymentDuringInterestOnly,
+                Interest: interestPayment,
+                Principal: principalPayment,
+                "Remaining Balance": balance
+            });
+        } else {
+            principalPayment = monthlyPayment - interestPayment;
+            balance -= principalPayment;
+            amortizationTable.push({
+                Month: month,
+                "Monthly Payment": monthlyPayment,
+                Interest: interestPayment,
+                Principal: principalPayment,
+                "Remaining Balance": Math.max(balance, 0)
+            });
+        }
+        
+        if (balloonDueYears && month === balloonDueYears * 12) {
+            let balloonPayment = balance;
+            amortizationTable.push({
+                Month: month,
+                "Monthly Payment": monthlyPayment,
+                Interest: interestPayment,
+                Principal: principalPayment,
+                "Remaining Balance": 0
+            });
+            break;
+        }
+    }
+
+    // Total interest paid
+    let totalInterestPaid = amortizationTable.reduce((acc, row) => acc + row.Interest, 0);
+    
+    // Total payments made
+    let totalPaymentsMade = amortizationTable.reduce((acc, row) => acc + row["Monthly Payment"], 0) + (balloonDueYears ? balance : 0);
     
     return {
-        "Down Payment": down_payment,
-        "Balloon Amount": df_amortization_table.iloc[-2]['Remaining Balance'],
-        "Monthly Payment Interest Only": round(df_amortization_table.iloc[0]['Monthly Payment'], 2),
-        "Monthly Payment Non Interest Only": round(df_amortization_table.iloc[-1]['Monthly Payment'], 2),
-        "Monthly Payment": round(monthly_payment, 2),
-        "Total Interest Paid": round(total_interest_paid, 2),
-        "Total Payment Amount": round(total_payments_made, 2),
-        "Amortization Table": df_amortization_table.iloc[:-1]
-    }
-''', 
-        language='python')
+        "Down Payment": downPayment,
+        "Balloon Amount": amortizationTable[amortizationTable.length - 2]["Remaining Balance"],
+        "Monthly Payment Interest Only": Math.round(amortizationTable[0]["Monthly Payment"] * 100) / 100,
+        "Monthly Payment Non Interest Only": Math.round(amortizationTable[amortizationTable.length - 1]["Monthly Payment"] * 100) / 100,
+        "Monthly Payment": Math.round(monthlyPayment * 100) / 100,
+        "Total Interest Paid": Math.round(totalInterestPaid * 100) / 100,
+        "Total Payment Amount": Math.round(totalPaymentsMade * 100) / 100,
+        "Amortization Table": amortizationTable.slice(0, -1) // Exclude the last row with the balloon payment
+    };
+}
+
+// Example usage
+let salePrice = 400000;  // Sale price in dollars
+let downPaymentRate = 10;  // Down payment rate in percent
+let annualInterestRate = 5;  // Annual interest rate in percent
+let loanTermYears = 30;  // Loan term in years
+let balloonDueYears = 5;  // Balloon payment due in years
+let interestOnlyYears = 1;  // Interest only period in years
+
+let result = sellerFinancingCalculator(salePrice, downPaymentRate, annualInterestRate, loanTermYears, balloonDueYears, interestOnlyYears);
+console.log("Monthly Payment: $", result["Monthly Payment"]);
+console.log("Total Interest Paid: $", result["Total Interest Paid"]);
+console.log("Total Payment Amount: $", result["Total Payment Amount"]);
+console.table(result["Amortization Table"]);
+'''
+        st.code(code, language='javascript')
