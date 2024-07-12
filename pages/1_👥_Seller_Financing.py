@@ -105,44 +105,50 @@ with tab1:
         interest_only_years = 0
 
     #|---------------RESULTS--------------#
-    result = seller_financing_calculator(param_sale_price, param_down_payment_rate, param_annual_interest_rate, param_loan_term_years, balloon_due_years, interest_only_years)
+    param_run_model = st.button("Run", type="primary")
+    if 'result' not in st.session_state:
+        st.session_state['result'] = None
 
-    # output
-    down_payment = result["Down Payment"]
-    balloon_amount = result["Balloon Amount"]
-    monthly_income_interest_only = result["Monthly Payment Interest Only"]
-    monthly_income_non_interest_only = result["Monthly Payment Non Interest Only"]
-    total_interest_paid = result["Total Interest Paid"]
-    total_payment_amount = result["Total Payment Amount"]
-    seller_total_payment = total_payment_amount + down_payment
+    if (param_run_model) or (st.session_state['result'] != None):
+        result = seller_financing_calculator(param_sale_price, param_down_payment_rate, param_annual_interest_rate, param_loan_term_years, balloon_due_years, interest_only_years)
+        st.session_state['result'] = result
 
-    # table
-    df = pd.DataFrame(result["Amortization Table"])
-    df.loc[df['Month'] == 60, 'Remaining Balance'] = 0
-    for c in list(df.columns)[1:]:
-        # df[c] = df[c].apply(lambda x: '{:,.2f}'.format(x)) # str
-        df[c] = df[c].apply(lambda x: round(x, 2))
+        # output
+        down_payment = st.session_state['result']["Down Payment"]
+        balloon_amount = st.session_state['result']["Balloon Amount"]
+        monthly_income_interest_only = st.session_state['result']["Monthly Payment Interest Only"]
+        monthly_income_non_interest_only = st.session_state['result']["Monthly Payment Non Interest Only"]
+        total_interest_paid = st.session_state['result']["Total Interest Paid"]
+        total_payment_amount = st.session_state['result']["Total Payment Amount"]
+        seller_total_payment = total_payment_amount + down_payment
 
-    # chart
-    labels = ['Payment Amount', 'Interest Amount']
-    values = [total_payment_amount, total_interest_paid]
+        # table
+        df = pd.DataFrame(st.session_state['result']["Amortization Table"])
+        df.loc[df['Month'] == 60, 'Remaining Balance'] = 0
+        for c in list(df.columns)[1:]:
+            # df[c] = df[c].apply(lambda x: '{:,.2f}'.format(x)) # str
+            df[c] = df[c].apply(lambda x: round(x, 2))
 
-    # pull is given as a fraction of the pie radius
-    fig = go.Figure(data=[go.Pie(labels=labels, values=values, pull=[0, 0.2], textinfo='label+percent')])
-    col3.plotly_chart(fig)
+        # chart
+        labels = ['Payment Amount', 'Interest Amount']
+        values = [total_payment_amount, total_interest_paid]
 
-    col1, col2 = st.columns(2)
-    col1.markdown('### Summary')
-    col1.write("Down payment: ${:0,.0f}".format(down_payment))
-    col1.write("Balloon amount: ${:0,.0f}".format(balloon_amount))
-    col1.write("Monthly Income During Interest Only: ${:0,.0f}".format(monthly_income_interest_only))
-    col1.write("Monthly Income After Interest Onlyt: ${:0,.0f}".format(monthly_income_non_interest_only))
-    col1.write("Total Interest Paid: ${:0,.0f}".format(total_interest_paid))
-    col1.write("Total Payment Amount: ${:0,.0f}".format(total_payment_amount))
-    col1.write("Seller Grand Total: ${:0,.0f}".format(seller_total_payment))
+        # pull is given as a fraction of the pie radius
+        fig = go.Figure(data=[go.Pie(labels=labels, values=values, pull=[0, 0.2], textinfo='label+percent')])
+        col3.plotly_chart(fig)
 
-    col2.markdown('### Amoritization Schedule')
-    col2.write(df)
+        col1, col2 = st.columns(2)
+        col1.markdown('### Summary')
+        col1.write("Down payment: ${:0,.0f}".format(down_payment))
+        col1.write("Balloon amount: ${:0,.0f}".format(balloon_amount))
+        col1.write("Monthly Income During Interest Only: ${:0,.0f}".format(monthly_income_interest_only))
+        col1.write("Monthly Income After Interest Onlyt: ${:0,.0f}".format(monthly_income_non_interest_only))
+        col1.write("Total Interest Paid: ${:0,.0f}".format(total_interest_paid))
+        col1.write("Total Payment Amount: ${:0,.0f}".format(total_payment_amount))
+        col1.write("Seller Grand Total: ${:0,.0f}".format(seller_total_payment))
+
+        col2.markdown('### Amoritization Schedule')
+        col2.write(df)
 
 
 with tab2:
